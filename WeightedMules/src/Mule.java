@@ -27,6 +27,8 @@ public class Mule {
 
 	double minDistToTestMule=0.0;//used for kMedian placement
 	Mule minDistMule;
+	int numberOfClosestNodes=0;//used for EMS coverage. maintains the number of nodes which are closest to it than to other mules
+	public int EMSLocationIndex;//ems
 
 	public Environment env = null;
 
@@ -65,6 +67,26 @@ public class Mule {
 		origin_LS_y = y;
 		Px = x;
 		Py = y;
+		env = Env;
+		AllNodes=env.getNodes();
+		CloseNodes=new ArrayList<Node>();
+
+	}
+	
+	public Mule(Pointxy p, Environment Env) {//ems
+		index = indexCount;
+		indexCount++;
+		//    rand = Main.r1;//HY to plant random seed
+		rand=new Random();
+
+		this.x = p.getX();
+		this.y = p.getY();
+		origin_x = p.getX();
+		origin_y = p.getY();
+		origin_LS_x = p.getX();
+		origin_LS_y = p.getY();
+		Px = p.getX();
+		Py = p.getY();
 		env = Env;
 		AllNodes=env.getNodes();
 		CloseNodes=new ArrayList<Node>();
@@ -192,6 +214,12 @@ public class Mule {
 		return numberOfFixs<Main.MaxFixesPerMule;
 	}
 	
-	
+	public int getNumberOfClosestNodes() {
+		return numberOfClosestNodes;
+	}
+
+	public void setNumberOfClosestNodes(int numberOfClosestNodes) {
+		this.numberOfClosestNodes = numberOfClosestNodes;
+	}
 	
 }
