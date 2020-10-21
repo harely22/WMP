@@ -1,15 +1,36 @@
 /*
-In this project we start creating the model for the mules
+This project simulates the Wireless Sensor Network Maintenance Problem (WMP)
+In WMP, a team of mobile agents called "mules" are
+deployed in the area of the WSN in such a way that would minimize the time
+it takes them to reach a failed sensor and repair it.
+The agents coordinate their collective deployment in order to minimize the
+weighted sensors' downtime, the agents' traveling distance and penalties in-
+curred due to unrepaired sensors within a certain time limit.
+This project simulates the full weighted model with penalty
+for not fixing a failed node within a specified period of time.
+
+
+In order to compare the performance of the different algorithms, 
+we developed a custom software simulator in Java, 
+to represent the Wireless Network Maintenance Problem (WMP). 
+The area of the simulated problem is an X over Y plane. 
+Any number of nodes N, and agents M can be positioned in the area. 
+Nodes have weights W associated with their importance. 
+Within the total duration of the experiment E_t, we can induce any number of failures F on the nodes. 
+The nodes which fail are chosen uniformly at random from N and the start time of each failure is chosen uniformly at random from (0,E_t).
+
+The file Main.java holds all the parameters, runs the simulation, and outputs the results to the console.
  *
  * */
+
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Random;
-import java.util.Vector;
 import java.io.*;
 
 public class Main {
+////////////////////CHOOSE ALGORITHM CONFIGURATION SETTING ///////////////////////////////////////
+	public static boolean EMSMode = false;//ems
+	public static boolean WFFMode = false;//Chooses anchor for new FF calculation as the max weighted node
 
 	public static boolean NewFFMode = false;
 	public static boolean CentroidAdjustmentMode = false;//Add centroid improvement to farthest first mule placement
@@ -17,13 +38,25 @@ public class Main {
 	public static boolean PotentialFieldMode = false;//
 	public static boolean localSearchMode = false;//
 	public static boolean DSA_Mode = false;//used to turn local search into DSA
+	public static boolean WeightedMode = true;//used for different node weights
+	public static boolean CapacitatedMode = false;//used to limit fixing capacity
+	public static boolean PenaltyMode = false;//used to penalize agents for not fixing failures
 
 	public static boolean basicMode = false; //no cooperation each mule care for its nodes
-	public static boolean cooperationMode1 = false; //each mule goes to the closest fall 
-	public static boolean cooperationMode2 = false; //mules adjust location at every fall and go to the closest 
-	public static boolean MannualSettingMode=false;
-	public static boolean UniformSettingMode=false;//works only for power of 4 : 4,16,64... mules
+	public static boolean cooperationMode1 = false; //each mule goes to the closest failure 
+	public static boolean cooperationMode2 = false; //mules adjust location at every failure and go to the closest 
+	
+////////////////////CHOOSE ENVIRONMENT CONFIGURATION SETTING ///////////////////////////////////////
+//	public static boolean MannualSettingMode=false;
+
+	public static boolean MuleManualSettingMode=false;//ems
+	public static boolean NodeManualSettingMode=false;//ems
+	public static boolean UniformSettingMode=false;//For Mules! works only for power of 4 : 4,16,64... mules
+	public static boolean UniformFailureSettingMode=false;//for failures. false activates setFailures1
 	public static boolean NodeGridMode=false;//number of nodes=x*y
+
+
+
 	//PLAIN RUN
 	public static  int NUM_Mules =10;//10
 	public static  int NUM_Nodes = 100;//100
@@ -32,14 +65,14 @@ public class Main {
 	public static  int BaseFailDuration=0;//0
 	public static  int failDuration=BaseFailDuration;//0
 	public static  int TotalExperimentTime=10000;//10000
-	public static int NumberOfExperiments=50;//50
+	public static int NumberOfExperiments=100;//50
 	public static int NumberOfFailures=10;//10
 	public static int NumberOfFailDurations=11;//11
 	public static int DurationCounterIncrement=1000;//1000
 	public static int MaxFixesPerMule =5;//5
 
-	
-////	//LINE RUN
+
+	////	//LINE RUN
 
 	//	public static  int NUM_Nodes = 5;//20
 	//	public static  int NUM_Mules =5;//5
@@ -54,46 +87,49 @@ public class Main {
 
 
 	//LINE DEBUG
-//			public static  int NUM_Nodes = 3;//20
-//			public static  int NUM_Mules =2;//5
-//			public static  int MAX_X = 10;//100
-//			public static  int MAX_Y =0;//0
-//			public static  int BaseFailDuration=0;//0
-//			public static  int failDuration=BaseFailDuration;//0
-//			public static  int TotalExperimentTime=1;//100
-//			public static int NumberOfExperiments=1;//50
-//			public static int NumberOfFailures=3;//10
-//			public static int NumberOfFailDurations=3;//10
-//			public static int DurationCounterIncrement=1;//1000
-			
+	//			public static  int NUM_Nodes = 3;//20
+	//			public static  int NUM_Mules =2;//5
+	//			public static  int MAX_X = 10;//100
+	//			public static  int MAX_Y =0;//0
+	//			public static  int BaseFailDuration=0;//0
+	//			public static  int failDuration=BaseFailDuration;//0
+	//			public static  int TotalExperimentTime=1;//100
+	//			public static int NumberOfExperiments=1;//50
+	//			public static int NumberOfFailures=3;//10
+	//			public static int NumberOfFailDurations=3;//10
+	//			public static int DurationCounterIncrement=1;//1000
+
 	//Plane DEBUG
-//			public static  int NUM_Nodes = 10;//20
-//			public static  int NUM_Mules =4;//5
-//			public static  int MAX_X = 4;//100
-//			public static  int MAX_Y =4;//0
-//			public static  int BaseFailDuration=0;//0
-//			public static  int failDuration=BaseFailDuration;//0
-//			public static  int TotalExperimentTime=10;//100
-//			public static int NumberOfExperiments=1;//50
-//			public static int NumberOfFailures=3;//10
-//			public static int NumberOfFailDurations=3;//10
-//			public static int DurationCounterIncrement=2;//1
-//	
+//				public static  int NUM_Nodes = 4;//20
+//				public static  int NUM_Mules =2;//5
+//				public static  int MAX_X = 4;//100
+//				public static  int MAX_Y =4;//0
+//				public static  int BaseFailDuration=0;//0
+//				public static  int failDuration=BaseFailDuration;//0
+//				public static  int TotalExperimentTime=10;//100
+//				public static int NumberOfExperiments=1;//50
+//				public static int NumberOfFailures=3;//10
+//				public static int NumberOfFailDurations=3;//10
+//				public static int DurationCounterIncrement=2;//1
+//				public static int MaxFixesPerMule =5;//5
+
 
 	//	public static String[] methods={"BasicNR","CM1","CM2","CM3","CM5","k-Centroid","KMedian"};
-//		public static String[] methods={"BasicGrid","k-Center","k-Centroid","k-Median","NoCooperation","new_k-Center"};
-	public static String[] methods={"BasicGrid","k-Center","k-Centroid","k-Median","localSearch"};
-//	public static String[] methods={"localSearch","BasicGrid","k-Center","k-Centroid","BasicGrid"};
-//	public static String[] methods={"localSearch","DSA"};
+	//		public static String[] methods={"NRD","k-Center","k-Centroid","k-Median","NoCooperation","new_k-Center"};
+	//	public static String[] methods={"Local Search","NRD","k-Center","k-Centroid","k-Median"};
+	//	public static String[] methods={"NRD","k-Center","k-Centroid","k-Median","DSA"};
+		public static String[] methods={"NRD","new_k-Center","k-Centroid","k-Median","LocalSearch","EMS"};
 
-//	public static String[] methods={"localSearch"};
-//	public static String[] methods={"k-Center"};
-//	public static String[] methods={"BasicGrid"};
-//	public static String[] methods={"PotentialField"};
-//	public static String[] methods={"k-Median"};
-//	public static String[] methods={"k-Centroid"};
-	
-	
+	//public static String[] methods={"EMS"};
+
+//	public static String[] methods={"LocalSearch"};
+//		public static String[] methods={"Wk-Center"};
+	//	public static String[] methods={"NRD"};
+	//	public static String[] methods={"PotentialField"};
+	//	public static String[] methods={"k-Median"};
+	//	public static String[] methods={"k-Centroid"};
+
+
 	public static int NumberOfMethods=methods.length;//5
 
 	public static double[][] AvgMovementMatrix=new double[NumberOfMethods][NumberOfFailDurations];
@@ -103,6 +139,9 @@ public class Main {
 	public static double[][] TotalMaxMovementMatrix=new double[NumberOfMethods][NumberOfFailDurations];
 	public static double[][] TotalMaxDownTimeMatrix=new double[NumberOfMethods][NumberOfFailDurations];
 	public static double[][] AvgInactiveMules=new double[NumberOfMethods][NumberOfFailDurations];
+	public static double[][] AvgPenalties=new double[NumberOfMethods][NumberOfFailDurations];//sum
+	public static double[][] AvgNumberOfPenalties=new double[NumberOfMethods][NumberOfFailDurations];//count
+	public static double[][] AvgCostMatrix=new double[NumberOfMethods][NumberOfFailDurations];//movement+downtime+penalties
 
 	public static double MaxAgentsPerTarget=0;
 	public static double MaxTargetsPerAgent=0;
@@ -118,12 +157,29 @@ public class Main {
 	public static int FailuresCounter=0;
 	public static int DurationsCounter=0;
 	public static int ExperimentsCounter=0;
+	/////////////Parameters for new objective function calculation and penalty
+	/////////////Total cost = ( alpha*sum(DownTime_fi*Weight_fi) +beta*sum(TravelDistance_mj)+ gama*(penalty_i))
+	/////////////Penalty = alpha*AvgMaxDownTime_F*Weight_(fi) +beta*AvgMaxTravelDistance_M*(1+FailureNumber/|F|)
+	public static double alpha=1;
+	public static double beta=0.1;//0.1
+	public static double gama=1;
+//	public static double alpha=5;
+//	public static double beta=1;//0.1
+//	public static double gama=1;
+	public static double AvgMaxDownTime_F=20;//This is a rough average estimate to assign penalties
+	public static double AvgMaxTravelDistance_M=250;//This is a rough average estimate to assign penalties
+
+
 
 	public static void main(String[] args) {
+		
+		if (!CapacitatedMode){
+			MaxFixesPerMule=NumberOfFailures;
+		}
 		//measuring elapsed time using System.nanoTime
 		long startTime = System.nanoTime();
 		try {
-			BufferedWriter out = new BufferedWriter(new FileWriter("MultiMule"+".txt"));
+			BufferedWriter out = new BufferedWriter(new FileWriter("Statistics"+".txt"));
 
 
 			System.out.println("NUM_Mules "+Environment.NUM_Mules);
@@ -155,6 +211,18 @@ public class Main {
 			out.write("UniformSettingMode= "+UniformSettingMode+ "  NodeGridMode= "+NodeGridMode);
 			out.newLine();
 
+			System.out.println("PenaltyMode= "+PenaltyMode);
+			out.write("PenaltyMode= "+PenaltyMode);
+			out.newLine();
+			System.out.println("WeightedMode= "+WeightedMode);
+			out.write("WeightedMode= "+WeightedMode);
+			out.newLine();
+
+			System.out.println("CapacitatedMode= "+CapacitatedMode);
+			out.write("CapacitatedMode= "+CapacitatedMode);
+			out.newLine();
+
+			
 			out.newLine();
 			System.out.println("////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////");
 			out.write("////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////");
@@ -181,8 +249,8 @@ public class Main {
 					failDuration=BaseFailDuration+DurationsCounter*DurationCounterIncrement;
 					System.out.println();
 					System.out.println("failDuration " +(DurationsCounter+1)+" out of "+NumberOfFailDurations+" = "+failDuration);
-					out.write("\n"+"failDuration " +(DurationsCounter+1)+" out of "+NumberOfFailDurations+" = "+failDuration);
-					out.newLine();
+			//		out.write("\n"+"failDuration " +(DurationsCounter+1)+" out of "+NumberOfFailDurations+" = "+failDuration);
+			//		out.newLine();
 
 
 					for(ExperimentsCounter=0;ExperimentsCounter<NumberOfExperiments;ExperimentsCounter++){
@@ -193,8 +261,8 @@ public class Main {
 						Node.indexCount=1;
 						System.out.println();
 						System.out.println("Experiment "+(ExperimentsCounter+1)+" out of "+ NumberOfExperiments);
-						out.write("Experiment "+(ExperimentsCounter+1)+" out of "+ NumberOfExperiments);
-						out.newLine();
+			//			out.write("Experiment "+(ExperimentsCounter+1)+" out of "+ NumberOfExperiments);
+			//			out.newLine();
 
 
 						r1 = new Random(ExperimentSeed);
@@ -215,8 +283,8 @@ public class Main {
 						for(FailuresCounter=0;FailuresCounter<NumberOfFailures;FailuresCounter++){
 
 							System.out.println("FailuresCounter " + FailuresCounter);
-							out.write("FailuresCounter " + FailuresCounter);
-							out.newLine();
+					//		out.write("FailuresCounter " + FailuresCounter);
+					//		out.newLine();
 							Failure currentFailure=failures.get(FailuresCounter);
 							env.updateNodeStatus(currentFailure.getStartTime());
 							currentFailure.getNode().setFail(true,currentFailure.getStartTime());
@@ -226,15 +294,15 @@ public class Main {
 								//Each mule is responsible for its close nodes as calculated in the initial deployment of FF
 								//Each mule returns to its initial location
 								Mule m=env.sendMuleA(currentFailure);
-								
+
 								//set mule to busy until 2*travel (distance) + fix
 								//update downtime to distance
 							}//basic
 
-							/////////////////////BasicGrid//////////////////////////////////////////
-							if(methods[MethodsCounter]=="BasicGrid"){
-								System.out.println("Running BasicGrid ");
-								Main.MannualSettingMode=true;
+							/////////////////////NRD//////////////////////////////////////////
+							if(methods[MethodsCounter]=="NRD"){
+								System.out.println("Running NRD ");
+								Main.MuleManualSettingMode=true;
 								if(Main.FailuresCounter==0){//if first time
 									env.placeMules();//when manual setting is on it sets 10 mules uniformly
 									mules=env.getMules();
@@ -248,15 +316,15 @@ public class Main {
 
 								//set mule to busy until 2*travel (distance) + fix
 								//update downtime to distance
-								Main.MannualSettingMode=false;
+								Main.MuleManualSettingMode=false;
 
 							}//basic grid
-							
+
 							/////////////////////NoCooperation//////////////////////////////////////////
 							if(methods[MethodsCounter]=="NoCooperation"){
 								System.out.println("Running NoCooperation ");
 
-								Main.MannualSettingMode=true;
+								Main.MuleManualSettingMode=true;
 								if(Main.FailuresCounter==0){//if first time
 									env.placeMules();//when manual setting is on it sets 10 mules uniformly
 									//		env.setOriginalMules();
@@ -269,7 +337,7 @@ public class Main {
 
 								//set mule to busy until 2*travel (distance) + fix
 								//update downtime to distance
-								Main.MannualSettingMode=false;
+								Main.MuleManualSettingMode=false;
 
 							}//basic grid
 							/////////////////////Basic No Return//////////////////////////////////////////
@@ -322,7 +390,7 @@ public class Main {
 							//Each mule is responsible for its close nodes as calculated in the deployment of FF
 							//Mules do not return to their initial location
 							//Closest available
-//unlike regular ff here we replace by finding the farthest from newly placed mules not from occupied 
+							//unlike regular ff here we replace by finding the farthest from newly placed mules not from occupied 
 							if(methods[MethodsCounter]=="new_k-Center"){
 								NewFFMode=true;
 								Mule m=env.sendMuleC(currentFailure);
@@ -336,6 +404,24 @@ public class Main {
 
 							}//new FF
 
+							///////////////////// new FF//////////////////////////////////////////
+							//FF is calculated after every failure and all the mules move
+							//Each mule is responsible for its close nodes as calculated in the deployment of FF
+							//Mules do not return to their initial location
+							//Closest available
+							//Anchor for new placement is the max weighted node 
+							if(methods[MethodsCounter]=="Wk-Center"){
+								WFFMode=true;
+								Mule m=env.sendMuleC(currentFailure);
+								env.rePlaceMules(currentFailure.getStartTime());
+
+								//set mule to busy until travel (distance) + fix
+								//update downtime to distance
+								//update movement to all movements
+								//reset mules according to the occupied ones
+								WFFMode=false;
+
+							}//new FF
 
 							/////////////////////CooperationMethod2//////////////////////////////////////////
 							//send the closest mule to failure no re-arrangement
@@ -396,7 +482,7 @@ public class Main {
 							//Mules do not return to their initial location
 							if(methods[MethodsCounter]=="k-Centroid"){
 								CentroidAdjustmentMode = true;
-								MannualSettingMode=true;
+								MuleManualSettingMode=true;
 								if(Main.FailuresCounter==0){//if first time
 									env.placeMules();//when manual setting is on it sets 10 mules uniformly
 									mules=env.getMules();						
@@ -455,11 +541,11 @@ public class Main {
 							//send the closest available mule to failure 
 							// currently with re-arrangement 
 							//Mules do not return to their initial location
-							if(methods[MethodsCounter]=="localSearch"){
-				
-								
+							if(methods[MethodsCounter]=="LocalSearch"){
+
+
 								localSearchMode = true;
-								
+
 								System.out.println("Placing localSearchMode ");
 
 								if(Main.FailuresCounter==0){//if first time
@@ -487,10 +573,10 @@ public class Main {
 							// currently with re-arrangement 
 							//Mules do not return to their initial location
 							if(methods[MethodsCounter]=="DSA"){
-												
+
 								localSearchMode = true;
 								DSA_Mode=true;
-								
+
 								System.out.println("Placing localSearchMode ");
 
 								if(Main.FailuresCounter==0){//if first time
@@ -511,13 +597,13 @@ public class Main {
 							}//DSA LS kMedian
 							//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////			
 
-							
-							
-							
+
+
+
 							/////////////////////PotentialField//////////////////////////////////////////
 							//Initial deployment grid
 							//Each mule calculates the potential force from all other neighboring mules and nodes
-//it then moves to the zero potential point
+							//it then moves to the zero potential point
 							if(methods[MethodsCounter]=="PotentialField"){
 								System.out.println("Placing PotentialField ");
 								PotentialFieldMode = true;
@@ -527,21 +613,47 @@ public class Main {
 								}
 								Mule m=env.sendMuleC(currentFailure);
 								env.rePlaceMules(currentFailure.getStartTime());
-							
+
 								PotentialFieldMode = false;
 							}//PotentialFiel
 							//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////																
+							/////////////////////EMS- Ambulance deployment//////////////////////////////////////////
+							//Initial deployment grid
+							//Send closest available 
+							//Mule with fewest nodes in cell relocates
+							//maintain highest possible coverage with fixed mule locations
+							///////////////////////////////////////////////////////////////////////////
+														if(methods[MethodsCounter]=="EMS"){
+															System.out.println("Ambulance Deployment");
+															EMSMode = true;
+															Main.MuleManualSettingMode=true;
+															if(Main.FailuresCounter==0){//if first time
+																env.placeMules();//when manual setting is on, it sets 10 (or 4) mules uniformly
+																mules=env.getMules();
+																env.resetCloseNodes();
+																env.updateClosestNodes(); //updates the number of nodes per EMS location - to be used for coverage calculation
+															}
+															//Mules are uniformly distributed
+															Mule m=env.sendMuleC(currentFailure);//closest available
+															env.rePlaceMules(currentFailure.getStartTime());
+															
+															Main.MuleManualSettingMode=false;
+															EMSMode = false;
+														}//EMS
+														//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////																
 
-		//					AvgDownTimeMatrix[MethodsCounter][DurationsCounter]+=(currentFailure.getNode().getDownDuration()*currentFailure.getNode().getWeight());
-							System.out.println("env.totalNodesWeight/NUM_Nodes " + env.totalNodesWeight/NUM_Nodes);
 
-						AvgDownTimeMatrix[MethodsCounter][DurationsCounter]+=(currentFailure.getNode().getDownDuration()*currentFailure.getNode().getWeight())/(env.totalNodesWeight/NUM_Nodes);//normalized
+							//			System.out.println("env.totalNodesWeight/NUM_Nodes " + env.totalNodesWeight/NUM_Nodes);
+
+							AvgDownTimeMatrix[MethodsCounter][DurationsCounter]+=(currentFailure.getNode().getDownDuration()*currentFailure.getNode().getWeight())/(env.totalNodesWeight/NUM_Nodes);//normalized
 							currentFailure.getNode().failEndTime=currentFailure.getStartTime()+currentFailure.getNode().getDownDuration();
 						}//Failures
-
+						//////////////////////////////////////////////////////////////////////////////////////
+						//end of failures - calculating stats						
 						System.out.println("FailuresDownDuration " + AvgDownTimeMatrix[MethodsCounter][DurationsCounter]);
-
+						////////////////max and avg TravelDist and  number of fixes per mule////////////////
 						double maxTravelDist=0;
+
 						for(Mule m: mules){
 							AvgMovementMatrix[MethodsCounter][DurationsCounter]+=m.getTravelDistance();
 							System.out.println("AvgMovementMatrix"+AvgMovementMatrix[MethodsCounter][DurationsCounter]);
@@ -550,18 +662,16 @@ public class Main {
 							if(m.getTravelDistance()>maxTravelDist){
 								maxTravelDist=m.getTravelDistance();
 							}
-							
-			
 							if(m.numberOfFixs==MaxFixesPerMule){
 								AvgInactiveMules[MethodsCounter][DurationsCounter]++;
-							}
-							
+							}		
 						}
 						System.out.println("AvgMovementMatrix"+AvgMovementMatrix[MethodsCounter][DurationsCounter]);
 
 						System.out.println("Adding only the max movement from this experiment"+ maxTravelDist); 
 						MaxMovementMatrix[MethodsCounter][DurationsCounter]+=maxTravelDist;
 
+						////////////////max DownDuration  per node////////////////
 
 						double maxDownDuration=0;
 						for(Failure f: failures){
@@ -573,13 +683,71 @@ public class Main {
 						System.out.println("Adding only the max down duration from this experiment"+ maxDownDuration/(env.totalNodesWeight/NUM_Nodes)); 
 						MaxDownTimeMatrix[MethodsCounter][DurationsCounter]+=maxDownDuration/(env.totalNodesWeight/NUM_Nodes);
 
+						///////////////Total Cost////////////////
+						/////////////Parameters for new objective function calculation and penalty
+						//Option 1:
+						/////////////Total cost = min( alpha*sum(DownTime_fi*Weight_fi) +beta*sum(TravelDistance_mj)+ gama*(penalty_i))
+						/////////////Penalty = alpha*AvgMaxDownTime_F*Weight_(fi) +beta*AvgMaxTravelDistance_M*(1+FailureNumber/|F|)
+						//Option 2:
+						/////////////Total cost = alpha*sum(DownTime_fi*Weight_fi) +beta*sum(TravelDistance_mj)+ gama*(penalty_i))
+						/////////////Penalty = if(downTime > threshold) =alpha*AvgMaxDownTime_F*Weight_(fi);
+
+						double weight=0;
+						double downTime=0;
+						double cost=0;
+						double totalCost=0;
+						int	 numberOfPenalties=0;
+						double sumOfPenalties=0;
+						double penalty=0;
+
+						for(Failure f: failures){
+							penalty=0;
+							cost=0;
+							weight=f.getNode().getWeight();
+							downTime=f.getNode().getDownDuration();
+
+							if(downTime>AvgMaxDownTime_F){
+								numberOfPenalties++;
+								penalty=weight*maxTravelDist;
+								sumOfPenalties+=penalty;
+							}
+							System.out.println(f+" weight="+weight+"  downtime="+downTime +"  penalty = "+penalty);	
+							System.out.println(" numberOfPenalties="+numberOfPenalties+"  sumOfPenalties="+sumOfPenalties );	
+
+//							if(f.isPenaltyActivated()){
+//								penalty=f.getPenaltyCost();
+//								numberOfPenalties++;
+//								sumOfPenalties+=f.getPenaltyCost();
+//							}
+							cost=alpha*weight*downTime;
+							if(PenaltyMode){
+							cost+=penalty;		
+							}
+							System.out.println(f+" weighted downtime or penalty = "+cost);	
+							totalCost+=cost;
+						}
+						double totalTravelDistForExperiment=0;
+						for(Mule m: mules){
+							totalTravelDistForExperiment+=m.getTravelDistance();
+						
+						}
+						totalCost+=beta*totalTravelDistForExperiment;//the movement holds the sum not yet devided by num of mules.
+						AvgCostMatrix[MethodsCounter][DurationsCounter]+=totalCost;
+					
+						AvgNumberOfPenalties[MethodsCounter][DurationsCounter]+=numberOfPenalties;
+						AvgPenalties[MethodsCounter][DurationsCounter]+=sumOfPenalties;
+						System.out.println("numberOfPenalties from this experiment"+ numberOfPenalties); 
+						System.out.println("sumOfPenalties from this experiment"+ sumOfPenalties); 
+
+						////////////////Total max DownDuration  and Total max TravelDist////////////////
+
 						if(maxDownDuration/(env.totalNodesWeight/NUM_Nodes)>TotalMaxDownTimeMatrix[MethodsCounter][DurationsCounter]){
 							TotalMaxDownTimeMatrix[MethodsCounter][DurationsCounter]=maxDownDuration/(env.totalNodesWeight/NUM_Nodes);
 						}
 						if(maxTravelDist>TotalMaxMovementMatrix[MethodsCounter][DurationsCounter]){
 							TotalMaxMovementMatrix[MethodsCounter][DurationsCounter]=maxTravelDist;
 						}
-						
+
 					}//Experiments
 
 
@@ -589,9 +757,7 @@ public class Main {
 
 
 
-
-
-			///////////////////////////////////////////////////////////////////////Finished experiments Starting to print sum results////////////////////////////////
+			////////////////////////////////////////////Finished experiments Starting to print sum results////////////////////////////////
 			System.out.println();
 			System.out.println();
 			System.out.println("//////////////////////////////");
@@ -606,7 +772,7 @@ public class Main {
 			System.out.println("//////////////////////////////");
 			out.write("//////////////////////////////");
 			out.newLine();
-			System.out.print(" method"+" , "+" , "+" , ");
+			System.out.print("method"+" , "+" , "+" , ");
 			out.write(" method ");
 			for(int bb=0;bb<NumberOfMethods;bb++){
 				System.out.print("   "+ methods[bb]+" ");
@@ -615,7 +781,7 @@ public class Main {
 			System.out.println();
 			out.newLine();
 			for (int loopi = 0; loopi < NumberOfFailDurations; loopi++) {
-				System.out.print("  movement average failDuration "+loopi*DurationCounterIncrement+" ");
+				System.out.print("movement average failDuration "+loopi*DurationCounterIncrement+" ");
 				out.write("  movement average failDuration "+loopi*DurationCounterIncrement+" ");
 				for(int bb=0;bb<NumberOfMethods;bb++){
 
@@ -640,7 +806,7 @@ public class Main {
 
 			System.out.println("//////////////////////////////");
 
-			System.out.print(" method "+" , "+" , "+" , ");
+			System.out.print("method "+" , "+" , "+" , ");
 			out.write(" method ");
 			out.newLine();
 			for(int bb=0;bb<NumberOfMethods;bb++){
@@ -650,7 +816,7 @@ public class Main {
 			System.out.println();
 			out.newLine();
 			for (int loopi = 0; loopi < NumberOfFailDurations; loopi++) {
-				System.out.print("  downDuration average failDuration "+loopi*DurationCounterIncrement+" ");
+				System.out.print("downDuration average failDuration "+loopi*DurationCounterIncrement+" ");
 				out.write("  downDuration average failDuration "+loopi*DurationCounterIncrement+" ");
 				for(int bb=0;bb<NumberOfMethods;bb++){
 
@@ -665,8 +831,8 @@ public class Main {
 
 			}//downTime sum
 
-///////////////////////////////print fixes stats
-//////////////////////////////////////////////////inactive mules
+			///////////////////////////////print fixes stats
+			//////////////////////////////////////////////////inactive mules
 
 			System.out.println("//////////////////////////////");
 			out.write("//////////////////////////////");
@@ -677,7 +843,7 @@ public class Main {
 
 			System.out.println("//////////////////////////////");
 
-			System.out.print(" method "+" , "+" , "+" , ");
+			System.out.print(" method "+" , "+" , ");
 			out.write(" method ");
 			out.newLine();
 			for(int bb=0;bb<NumberOfMethods;bb++){
@@ -702,8 +868,104 @@ public class Main {
 
 			}//AvgInactiveMules
 
+			///////////////////////////////print cost  stats
+			//////////////////////////////////////////////////
 
-			///////////////////////////////////////////////////////////////////////Finished experiments Starting to print average max results////////////////////////////////
+			System.out.println("//////////////////////////////");
+			out.write("//////////////////////////////");
+			out.newLine();
+			System.out.println("Calculate average cost per experiment for "+ NumberOfExperiments+" experiments");
+			out.write("Calculate average cost per experiment for  "+ NumberOfExperiments+" experiments");
+			out.newLine();
+
+			System.out.println("//////////////////////////////");
+
+			System.out.print("method "+" , "+" , ");
+			out.write(" method ");
+			out.newLine();
+			for(int bb=0;bb<NumberOfMethods;bb++){
+				System.out.print("   "+ methods[bb]+" ");
+				out.write("   "+ methods[bb]+" ");
+			}
+			System.out.println();
+			out.newLine();
+			for (int loopi = 0; loopi < NumberOfFailDurations; loopi++) {
+				System.out.print("Average cost "+loopi*DurationCounterIncrement+" ");
+				out.write("Average cost  "+loopi*DurationCounterIncrement+" ");
+				for(int bb=0;bb<NumberOfMethods;bb++){
+					System.out.print(((AvgCostMatrix[bb][loopi]/NumberOfExperiments))+"  ");
+					out.write(((AvgCostMatrix[bb][loopi]/NumberOfExperiments))+"  ");
+				}
+				System.out.println();
+				out.newLine();
+
+			}//total cost 
+			
+			///////////////////////////////print  avg penalty stats
+			//////////////////////////////////////////////////
+
+			System.out.println("//////////////////////////////");
+			out.write("//////////////////////////////");
+			out.newLine();
+			System.out.println("Calculate average number of penalties per experiment for "+ NumberOfExperiments+" experiments");
+			out.write("Calculate average number of penalties per experiment for  "+ NumberOfExperiments+" experiments");
+			out.newLine();
+
+			System.out.println("//////////////////////////////");
+
+			System.out.print(" method "+" , "+" , "+" , ");
+			out.write(" method ");
+			out.newLine();
+			for(int bb=0;bb<NumberOfMethods;bb++){
+				System.out.print("   "+ methods[bb]+" ");
+				out.write("   "+ methods[bb]+" ");
+			}
+			System.out.println();
+			out.newLine();
+			for (int loopi = 0; loopi < NumberOfFailDurations; loopi++) {
+				System.out.print("Average number of penalties "+loopi*DurationCounterIncrement+" ");
+				out.write("Average number of penalties  "+loopi*DurationCounterIncrement+" ");
+				for(int bb=0;bb<NumberOfMethods;bb++){
+					System.out.print(((AvgNumberOfPenalties[bb][loopi]/NumberOfExperiments))+"  ");
+					out.write(((AvgNumberOfPenalties[bb][loopi]/NumberOfExperiments))+"  ");
+				}
+				System.out.println();
+				out.newLine();
+
+			}//avg penalties
+			///////////////////////////////print  sum of penalty stats
+			//////////////////////////////////////////////////
+
+			System.out.println("//////////////////////////////");
+			out.write("//////////////////////////////");
+			out.newLine();
+			System.out.println("Calculate average sum of penalties per experiment for "+ NumberOfExperiments+" experiments");
+			out.write("Calculate average sum of penalties per experiment for  "+ NumberOfExperiments+" experiments");
+			out.newLine();
+
+			System.out.println("//////////////////////////////");
+
+			System.out.print(" method "+" , "+" , "+" , ");
+			out.write(" method ");
+			out.newLine();
+			for(int bb=0;bb<NumberOfMethods;bb++){
+				System.out.print("   "+ methods[bb]+" ");
+				out.write("   "+ methods[bb]+" ");
+			}
+			System.out.println();
+			out.newLine();
+			for (int loopi = 0; loopi < NumberOfFailDurations; loopi++) {
+				System.out.print("Average sum of penalties "+loopi*DurationCounterIncrement+" ");
+				out.write("Average sum of penalties  "+loopi*DurationCounterIncrement+" ");
+				for(int bb=0;bb<NumberOfMethods;bb++){
+					System.out.print(((AvgPenalties[bb][loopi]/NumberOfExperiments))+"  ");
+					out.write(((AvgPenalties[bb][loopi]/NumberOfExperiments))+"  ");
+				}
+				System.out.println();
+				out.newLine();
+
+			}//sum penalties
+			/////////////////////////////////////////////////////// Starting to print average max results////////////////////////////////
 			System.out.println("//////////////////////////////");
 			out.write("//////////////////////////////");
 			out.newLine();
@@ -713,7 +975,7 @@ public class Main {
 			System.out.println("//////////////////////////////");
 			out.write("//////////////////////////////");
 			out.newLine();
-			System.out.print(" method"+" , "+" , "+" , "+" , ");
+			System.out.print("method"+" , "+" , "+" , "+" , ");
 			out.write(" method ");
 			for(int bb=0;bb<NumberOfMethods;bb++){
 				System.out.print("   "+ methods[bb]+" ");
@@ -722,7 +984,7 @@ public class Main {
 			System.out.println();
 			out.newLine();
 			for (int loopi = 0; loopi < NumberOfFailDurations; loopi++) {
-				System.out.print("  MAXIMAL movement average failDuration "+loopi*DurationCounterIncrement+" ");
+				System.out.print("MAXIMAL movement average failDuration "+loopi*DurationCounterIncrement+" ");
 				out.write(" MAXIMAL movement average failDuration "+loopi*DurationCounterIncrement+" ");
 				for(int bb=0;bb<NumberOfMethods;bb++){
 
@@ -747,7 +1009,7 @@ public class Main {
 
 			System.out.println("//////////////////////////////");
 
-			System.out.print(" method "+" , "+" , "+" , "+" , ");
+			System.out.print("method "+" , "+" , "+" , "+" , ");
 			out.write(" method ");
 			out.newLine();
 			for(int bb=0;bb<NumberOfMethods;bb++){
@@ -757,7 +1019,7 @@ public class Main {
 			System.out.println();
 			out.newLine();
 			for (int loopi = 0; loopi < NumberOfFailDurations; loopi++) {
-				System.out.print("  MAXIMAL downDuration average failDuration "+loopi*DurationCounterIncrement+" ");
+				System.out.print("MAXIMAL downDuration average failDuration "+loopi*DurationCounterIncrement+" ");
 				out.write("  MAXIMAL downDuration average failDuration "+loopi*DurationCounterIncrement+" ");
 				for(int bb=0;bb<NumberOfMethods;bb++){
 
@@ -784,7 +1046,7 @@ public class Main {
 			System.out.println("//////////////////////////////");
 			out.write("//////////////////////////////");
 			out.newLine();
-			System.out.print(" method"+" , "+" , "+" , "+" , "+" , ");
+			System.out.print("method"+" , "+" , "+" , "+" , "+" , ");
 			out.write(" method ");
 			for(int bb=0;bb<NumberOfMethods;bb++){
 				System.out.print("   "+methods[bb]+" ");
@@ -793,7 +1055,7 @@ public class Main {
 			System.out.println();
 			out.newLine();
 			for (int loopi = 0; loopi < NumberOfFailDurations; loopi++) {
-				System.out.print("  total MAXIMAL movement average failDuration "+loopi*DurationCounterIncrement+" ");
+				System.out.print("total MAXIMAL movement average failDuration "+loopi*DurationCounterIncrement+" ");
 				out.write("total MAXIMAL movement average failDuration "+loopi*DurationCounterIncrement+" ");
 				for(int bb=0;bb<NumberOfMethods;bb++){
 
@@ -818,7 +1080,7 @@ public class Main {
 
 			System.out.println("//////////////////////////////");
 
-			System.out.print(" method "+" , "+" , "+" , "+" , "+" , ");
+			System.out.print("method "+" , "+" , "+" , "+" , "+" , ");
 			out.write(" method ");
 			out.newLine();
 			for(int bb=0;bb<NumberOfMethods;bb++){
@@ -828,7 +1090,7 @@ public class Main {
 			System.out.println();
 			out.newLine();
 			for (int loopi = 0; loopi < NumberOfFailDurations; loopi++) {
-				System.out.print(" Total MAXIMAL downDuration average failDuration "+loopi*DurationCounterIncrement+" ");
+				System.out.print("Total MAXIMAL downDuration average failDuration "+loopi*DurationCounterIncrement+" ");
 				out.write("Total  MAXIMAL downDuration average failDuration "+loopi*DurationCounterIncrement+" ");
 				for(int bb=0;bb<NumberOfMethods;bb++){
 
@@ -884,15 +1146,24 @@ public class Main {
 			System.out.println("UniformSettingMode= "+UniformSettingMode+ "   NodeGridMode= "+NodeGridMode);
 			out.write("UniformSettingMode= "+UniformSettingMode+ "   NodeGridMode= "+NodeGridMode);
 			out.newLine();
-			System.out.println("Weighted version ");
-			
-			
+			System.out.println("PenaltyMode= "+PenaltyMode);
+			out.write("PenaltyMode= "+PenaltyMode);
+			out.newLine();
+
+			System.out.println("WeightedMode= "+WeightedMode);
+			out.write("WeightedMode= "+WeightedMode);
+			out.newLine();
+			System.out.println("CapacitatedMode= "+CapacitatedMode);
+			out.write("CapacitatedMode= "+CapacitatedMode);
+			out.newLine();
+
 			System.out.println("////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////");
 			out.write("////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////");
 			out.newLine();
 			//	}//SRMR
 			long elapsedTime = System.nanoTime() - startTime;
 			long   seconds=(elapsedTime/1000000000);
+			System.out.println("Total execution time in seconds = "   +seconds );
 			out.write("Total execution time in seconds = "   +seconds );
 			out.close();
 		}//try
